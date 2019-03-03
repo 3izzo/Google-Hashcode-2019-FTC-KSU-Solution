@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -19,28 +20,39 @@ public class Core {
     public List<Slide> slidesInput = new ArrayList<Slide>();
     public List<Slide> slides = new ArrayList<Slide>();
     public HashMap<String, LinkedList<Slide>> tagMap = new HashMap<String, LinkedList<Slide>>();
+    public long score = 0;
+
+    private int emptyTill = 0;
+    static int maxIteration = 100;
+//    long seed;
+//    Random r = new Random();
 
     public static void main(String[] args) throws FileNotFoundException {
 
 	File folder = new File("inputs");
 	for (final File fileEntry : folder.listFiles()) {
-
+//	for (int i = 0; i < 4; i++) {
 	    new Thread() {
 		@Override
 		public void run() {
 		    try {
-			new Core(fileEntry.getName());
+//			while (true)
+			    new Core(fileEntry.getName());
 		    } catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		    }
 		}
 	    }.start();
-
+//	    System.out.println("created threead: " + i);
 	}
+//	    break;
+//	}
     }
 
     public Core(String path) throws FileNotFoundException {
+//	seed = System.nanoTime();
+//	r = new Random(seed);
 	Scanner sc = new Scanner(new File("inputs\\" + path));
 	count = sc.nextInt();
 
@@ -56,7 +68,6 @@ public class Core {
 	}
 	try {
 	    Solve("out_" + path);
-	    System.out.println("Done " + path);
 	} catch (IOException e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();
@@ -66,12 +77,12 @@ public class Core {
     private void Solve(String outPut) throws IOException {
 	getCombinedSlides();
 	getHorizontalSlides();
-	System.out.println("horizantal slides " + outPut);
+//	System.out.println("horizantal slides " + outPut);
 	fillTagMap();
-	System.out.println("filled map " + outPut);
+//	System.out.println("filled map " + outPut);
 
 	calcTagRep();
-	System.out.println("calculated tags " + outPut);
+//	System.out.println("calculated tags " + outPut);
 	slides = new LinkedList<Slide>(slidesInput);
 	slides.sort(new Comparator<Slide>() {
 
@@ -80,19 +91,20 @@ public class Core {
 		return o1.tagRep - o2.tagRep;
 	    }
 	});
-	System.out.println("sorted  " + outPut);
+//	System.out.println("sorted  " + outPut);
 
+	Slide prevSlide;
 	Slide currentSlide = findBestPair(slides.get(0));
 
 	FileWriter fileWriter = new FileWriter(outPut);
 	PrintWriter printWriter = new PrintWriter(fileWriter);
 	printWriter.printf("%d\n", slides.size());
 	for (int i = 0; i < slides.size(); i++) {
-//	    if (i % 100 == 0) {
+//	    if (i % 1000 == 0) {
 //		System.out.println(i);
 //	    }
 //	    System.out.println(slides.indexOf(currentSlide));
-//	    printWriter.print("" + slides.indexOf(currentSlide));
+	    printWriter.print("" + slides.indexOf(currentSlide));
 
 	    if (currentSlide.isCombinedSlide())
 		printWriter.printf("%d %d\n", currentSlide.p1.index, currentSlide.p2.index);
@@ -100,21 +112,22 @@ public class Core {
 		printWriter.printf("%d\n", currentSlide.p1.index);
 
 	    removeFromTagMap(currentSlide);
+	    prevSlide = currentSlide;
 	    currentSlide = findBestPair(currentSlide);
+	    if (currentSlide != null)
+		score += prevSlide.getTransitionValue(currentSlide);
 
 	}
+	System.out.println(outPut + " score: " + score);
 
 	fileWriter.close();
 
 //	System.out.println(tagMap);
     }
 
-    private int emptyTill = 0;
-    static int maxIteration = 100;
-
     private Slide findBestPair(Slide slide) {
 	Slide bestPair = null;
-	int bestValue = 100000000;
+	int bestValue = -1;
 	int n = 0;
 	main: for (String tag : slide.getTags()) {
 //	    System.out.println(tag);
@@ -131,7 +144,7 @@ public class Core {
 		}
 		n++;
 		int transitionValue = slide.getTransitionValue(slide2);
-		if (transitionValue < bestValue) {
+		if (transitionValue > bestValue) {
 		    bestPair = slide2;
 		    bestValue = transitionValue;
 		}
@@ -301,7 +314,7 @@ class Slide {
 		commonTags++;
 	}
 	int unq1 = allTags.size() - commonTags, un2 = s.allTags.size() - commonTags;
-	return Math.max(Math.min(commonTags, unq1), un2);
+	return Math.min(Math.min(commonTags, unq1), un2);
     }
 
     @Override
